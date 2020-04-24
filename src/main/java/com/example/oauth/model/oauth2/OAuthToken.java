@@ -1,4 +1,4 @@
-package com.example.oauth.model;
+package com.example.oauth.model.oauth2;
 
 import lombok.Getter;
 import lombok.Setter;
