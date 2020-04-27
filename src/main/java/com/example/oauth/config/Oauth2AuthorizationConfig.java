@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.config.annotation.configurers.ClientDetailsServiceConfigurer;
 import org.springframework.security.oauth2.config.annotation.web.configuration.AuthorizationServerConfigurerAdapter;
@@ -14,6 +15,7 @@ import org.springframework.security.oauth2.config.annotation.web.configurers.Aut
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerSecurityConfigurer;
 import org.springframework.security.oauth2.provider.token.store.JdbcTokenStore;
 import org.springframework.security.oauth2.provider.token.store.JwtAccessTokenConverter;
+import org.springframework.security.oauth2.provider.token.store.KeyStoreKeyFactory;
 
 import javax.sql.DataSource;
 import java.util.concurrent.ExecutionException;
@@ -36,6 +38,18 @@ public class Oauth2AuthorizationConfig extends AuthorizationServerConfigurerAdap
 
     @Value("${security.oauth2.jwt.signkey}")
     private String signKey;
+
+    /**
+     * Resourece서버에서 token 검증 요청을  Authorization서버로 보낼때 /oauth/check_token을 호출하는데, 해당 요청을 받기 위함.
+     * @param security
+     * @throws Exception
+     */
+    @Override
+    public void configure(AuthorizationServerSecurityConfigurer security) throws Exception{
+        security.tokenKeyAccess("permitAll()")
+                .checkTokenAccess("isAuthenticated()")  // allow check token
+                .allowFormAuthenticationForClients();
+    }
 
     /**
      * 클라이언트 정보 주입 방식을 jdbcdetail로 변경
@@ -70,26 +84,28 @@ public class Oauth2AuthorizationConfig extends AuthorizationServerConfigurerAdap
     }
 
     /**
-     * jwt converter를 등록
+     * jwt converter - signKey 공유 방식
      *
      * @return
      */
-    @Bean
+//    @Bean
+//    public JwtAccessTokenConverter jwtAccessTokenConverter() {
+//        JwtAccessTokenConverter converter = new JwtAccessTokenConverter();
+//        converter.setSigningKey(signKey);
+//
+//        return converter;
+//    }
+    /**
+     * jwt converter - 비 대칭 키 sign
+     *
+     * @return
+     */
     public JwtAccessTokenConverter jwtAccessTokenConverter() {
+        KeyStoreKeyFactory keyStoreKeyFactory = new KeyStoreKeyFactory(new FileSystemResource("D:/study/OauthAuthorization/src/main/resources/oauth2jwt.jks"), "oauth2jwtpass".toCharArray());
         JwtAccessTokenConverter converter = new JwtAccessTokenConverter();
-        converter.setSigningKey(signKey);
+        converter.setKeyPair(keyStoreKeyFactory.getKeyPair("oauth2jwt"));
 
         return converter;
     }
-    /**
-     * Resourece서버에서 token 검증 요청을  Authorization서버로 보낼때 /oauth/check_token을 호출하는데, 해당 요청을 받기 위함.
-     * @param security
-     * @throws Exception
-     */
-    @Override
-    public void configure(AuthorizationServerSecurityConfigurer security) throws Exception{
-        security.tokenKeyAccess("permitAll()")
-                .checkTokenAccess("isAuthenticated()")  // allow check token
-                .allowFormAuthenticationForClients();
-    }
+
 }

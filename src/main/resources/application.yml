@@ -22,7 +22,6 @@ spring:
       hibernate:
         format_sql: true
     show-sql: true
-    generate-ddl: true
 
 security:
   oauth2:
